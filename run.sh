@@ -46,7 +46,7 @@ Listen ${LISTEN_PORT}
     ErrorDocument 200 "ok"
     RewriteEngine On
     RewriteRule "/fd888239-5bf8-4e6d-a523-f0ca5a34479c/status" - [R=200]
-
+    SSLProxyEngine On
     ProxyPass / "${APP_PROTOCOL}://${APP_HOST}:${APP_PORT}/"
     ProxyPassReverse / "${APP_PROTOCOL}://${APP_HOST}:${APP_PORT}/"
 </VirtualHost>
