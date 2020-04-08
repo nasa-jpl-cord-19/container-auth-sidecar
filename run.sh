@@ -1,12 +1,19 @@
 #!/usr/bin/env bash
 set -e
 
-APP_HOST=${APP_HOST:-localhost}
+APP_HOST="${APP_HOST:-localhost}"
+APP_PROTOCOL="${APP_PROTOCOL:-http}"
 # I think this is fine to do because we're not storing any long term session information.
 OIDC_CRYPTO_PASS="${OIDC_CRYPTO_PASS:-$(dd if=/dev/urandom count=1 bs=45 | base32)}"
+LISTEN_PORT="${LISTEN_PORT:-80}"
+AUTH_ENABLED="${AUTH_ENABLED:-yes}"
 
+
+if [[ "${AUTH_ENABLED}" == "yes" ]]; then
 cat << EOF > /usr/local/apache2/conf/site.conf
-<VirtualHost *:80>
+Listen ${LISTEN_PORT}
+
+<VirtualHost *:${LISTEN_PORT}>
     ErrorDocument 200 "ok"
     RewriteEngine On
     RewriteRule "/fd888239-5bf8-4e6d-a523-f0ca5a34479c/status" - [R=200]
@@ -25,11 +32,25 @@ cat << EOF > /usr/local/apache2/conf/site.conf
             Require valid-user
         </RequireAll>
 
-        ProxyPass  "http://${APP_HOST}:${APP_PORT}/"
-        ProxyPassReverse  "http://${APP_HOST}:${APP_PORT}/"
+        ProxyPass  "${APP_PROTOCOL}://${APP_HOST}:${APP_PORT}/"
+        ProxyPassReverse  "${APP_PROTOCOL}://${APP_HOST}:${APP_PORT}/"
     </Location>
     
 </VirtualHost>
 EOF
+else
+cat << EOF > /usr/local/apache2/conf/site.conf
+Listen ${LISTEN_PORT}
+
+<VirtualHost *:${LISTEN_PORT}>
+    ErrorDocument 200 "ok"
+    RewriteEngine On
+    RewriteRule "/fd888239-5bf8-4e6d-a523-f0ca5a34479c/status" - [R=200]
+
+    ProxyPass / "${APP_PROTOCOL}://${APP_HOST}:${APP_PORT}/"
+    ProxyPassReverse / "${APP_PROTOCOL}://${APP_HOST}:${APP_PORT}/"
+</VirtualHost>
+EOF
+fi
 
 exec httpd-foreground "$@"
